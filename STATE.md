@@ -44,7 +44,7 @@ There was no `.git` directory or GitHub remote in the recovered workspace, so pr
 - `gradlew`, `gradlew.bat`, and `gradle/wrapper/gradle-wrapper.jar` were restored from the official Gradle `v8.5.0` source tree during repository bootstrap.
 - GitHub Actions validates the wrapper and uses `./gradlew :app:assembleDebug`.
 - The reconstructed source tree was checked for obvious credentials/secrets before publication; none were found.
-- Initial Android CI was triggered after import. Record its verified outcome here after completion.
+- GitHub Actions run `35893195997` verified JDK 17, Android SDK 34 installation, Gradle wrapper validation, Gradle cache setup, and `./gradlew :app:assembleDebug`; the debug APK build step completed successfully.
 
 ## Google API status
 
