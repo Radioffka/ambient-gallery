@@ -1,0 +1,14 @@
+{
+  "name": "ambient-gallery-simulator",
+  "version": "0.1.0",
+  "description": "UX simulator and review capture tooling for Ambient Gallery.",
+  "scripts": {
+    "capture": "node simulator/capture.js",
+    "build-video": "node simulator/build-video.js"
+  },
+  "type": "commonjs",
+  "dependencies": {
+    "playwright": "^1.62.1"
+  },
+  "private": true
+}

@@ -1,0 +1,23 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="320dp"
+    android:height="180dp"
+    android:viewportWidth="320"
+    android:viewportHeight="180">
+    <path
+        android:fillColor="#101318"
+        android:pathData="M0,0h320v180h-320z" />
+    <!-- Ambient Gallery TV Banner Icon -->
+    <path
+        android:fillColor="#1E283A"
+        android:pathData="M136,54 C136,49.58 139.58,46 144,46 L176,46 C180.42,46 184,49.58 184,54 L184,106 C184,110.42 180.42,114 176,114 L144,114 C139.58,114 136,110.42 136,106 Z" />
+    <path
+        android:strokeColor="#4285F4"
+        android:strokeWidth="3"
+        android:pathData="M136,54 C136,49.58 139.58,46 144,46 L176,46 C180.42,46 184,49.58 184,54 L184,106 C184,110.42 180.42,114 176,114 L144,114 C139.58,114 136,110.42 136,106 Z" />
+    <path
+        android:fillColor="#FBBC04"
+        android:pathData="M148,68 C148,64.69 150.69,62 154,62 C157.31,62 160,64.69 160,68 C160,71.31 157.31,74 154,74 C150.69,74 148,71.31 148,68 Z" />
+    <path
+        android:fillColor="#34A853"
+        android:pathData="M140,104 L152,86 L162,96 L168,90 L180,104 Z" />
+</vector>

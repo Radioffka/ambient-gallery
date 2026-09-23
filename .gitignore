@@ -1,0 +1,45 @@
+# Android / Gradle
+.gradle/
+**/build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Signing / secrets
+*.jks
+*.keystore
+keystore.properties
+.env
+.env.*
+!.env.example
+secrets.properties
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Node / simulator
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Generated Google review evidence
+# Source code for the simulator stays tracked; generated screenshots/videos do not.
+docs/google-review/**/*.png
+docs/google-review/**/*.jpg
+docs/google-review/**/*.jpeg
+docs/google-review/**/*.webp
+docs/google-review/**/*.mp4
+docs/google-review/**/concat_list.txt
+
+# Misc
+*.log

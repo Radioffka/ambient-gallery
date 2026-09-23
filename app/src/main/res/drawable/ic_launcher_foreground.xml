@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <group
+        android:translateX="24"
+        android:translateY="24">
+        <!-- Ambient Gallery Frame Outer -->
+        <path
+            android:fillColor="#1E283A"
+            android:pathData="M8,12 C8,7.58 11.58,4 16,4 L44,4 C48.42,4 52,7.58 52,12 L52,44 C52,48.42 48.42,52 44,52 L16,52 C11.58,52 8,48.42 8,44 Z" />
+        <path
+            android:strokeColor="#4285F4"
+            android:strokeWidth="2.5"
+            android:pathData="M8,12 C8,7.58 11.58,4 16,4 L44,4 C48.42,4 52,7.58 52,12 L52,44 C52,48.42 48.42,52 44,52 L16,52 C11.58,52 8,48.42 8,44 Z" />
+        <!-- Sun -->
+        <path
+            android:fillColor="#FBBC04"
+            android:pathData="M22,20 C22,17.79 23.79,16 26,16 C28.21,16 30,17.79 30,20 C30,22.21 28.21,24 26,24 C23.79,24 22,22.21 22,20 Z" />
+        <!-- Mountains -->
+        <path
+            android:fillColor="#34A853"
+            android:pathData="M14,44 L26,28 L34,38 L40,32 L46,44 Z" />
+    </group>
+</vector>

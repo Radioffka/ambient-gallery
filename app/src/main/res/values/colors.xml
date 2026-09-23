@@ -1,0 +1,13 @@
+<resources>
+    <color name="bg_dark">#0F1115</color>
+    <color name="surface_dark">#181B20</color>
+    <color name="surface_card">#222630</color>
+    <color name="text_primary">#F0F3F8</color>
+    <color name="text_secondary">#9DA8B9</color>
+    <color name="google_blue">#4285F4</color>
+    <color name="google_red">#EA4335</color>
+    <color name="google_yellow">#FBBC04</color>
+    <color name="google_green">#34A853</color>
+    <color name="focus_border">#FFFFFF</color>
+    <color name="focus_glow">#4DFFFFFF</color>
+</resources>
