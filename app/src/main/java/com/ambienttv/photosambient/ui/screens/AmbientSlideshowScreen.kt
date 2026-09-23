@@ -96,7 +96,8 @@ fun AmbientSlideshowScreen(
                             item = targetItem,
                             isPlaying = isPlaying,
                             accessToken = accessToken,
-                            onVideoCompleted = { controller.onVideoCompleted() }
+                            onVideoCompleted = { controller.onVideoCompleted() },
+                            onVideoFailed = { controller.onVideoFailed(targetItem.id) }
                         )
                     }
                 }
@@ -152,7 +153,8 @@ private fun VideoPlayerView(
     item: AmbientMediaItem,
     isPlaying: Boolean,
     accessToken: String?,
-    onVideoCompleted: () -> Unit
+    onVideoCompleted: () -> Unit,
+    onVideoFailed: () -> Unit
 ) {
     val mediaUrl = item.playbackUrl() ?: item.baseUrl
     val context = LocalContext.current
@@ -175,7 +177,7 @@ private fun VideoPlayerView(
                     }
                 }
                 override fun onPlayerError(error: PlaybackException) {
-                    onVideoCompleted()
+                    onVideoFailed()
                 }
             })
         }

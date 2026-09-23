@@ -1,5 +1,6 @@
 package com.ambienttv.photosambient.ui.navigation
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -54,6 +55,7 @@ fun AmbientNavHost(
     val account by repository.accountInfo.collectAsState()
     val items by repository.mediaItems.collectAsState()
     val accessToken by repository.accessToken.collectAsState()
+    val queue by slideshowController.mediaQueue.collectAsState()
 
     var screen by remember { mutableStateOf(if (repository.currentDevice.value == null) "welcome" else "waiting_setup") }
     var deviceName by remember { mutableStateOf(device?.displayName ?: "Living Room TV") }
@@ -64,6 +66,18 @@ fun AmbientNavHost(
     fun showError(error: Exception) {
         errorMessage = error.message ?: "Google Photos could not complete this step."
         screen = "error"
+    }
+
+    fun cancelSetup() {
+        scope.launch {
+            if (repository.disconnectGooglePhotos()) {
+                slideshowController.setQueue(emptyList())
+                screen = "welcome"
+            } else {
+                errorMessage = "Could not delete the Google Photos device. Check the connection and try again."
+                screen = "error"
+            }
+        }
     }
 
     // Polling is tied to the authorization screen. Leaving it cancels the pending code.
@@ -146,6 +160,29 @@ fun AmbientNavHost(
         }
     }
 
+    LaunchedEffect(screen, queue.isEmpty()) {
+        if (screen == "slideshow" && queue.isEmpty()) {
+            waitingMessage = "No playable media is available yet. Retrying automatically."
+            screen = "waiting_setup"
+        }
+    }
+
+    BackHandler(enabled = screen != "welcome") {
+        if (screen == "waiting_setup" && !returnToSettings) {
+            cancelSetup()
+        } else screen = when (screen) {
+            "permissions" -> "welcome"
+            "device_name" -> "permissions"
+            "oauth_qr", "oauth_loading" -> "device_name"
+            "waiting_setup" -> "settings"
+            "selection_settings", "disconnect_dialog" -> "settings"
+            "slideshow" -> "settings"
+            "settings" -> "slideshow"
+            "error" -> if (device == null) "device_name" else "waiting_setup"
+            else -> "welcome"
+        }
+    }
+
     Box(modifier = modifier.fillMaxSize()) {
         when (screen) {
             "welcome" -> WelcomeScreen(onConnectClick = { screen = "permissions" })
@@ -188,7 +225,7 @@ fun AmbientNavHost(
                 deviceName = device?.displayName ?: deviceName,
                 settingsUri = repository.getSettingsUri(),
                 statusMessage = waitingMessage,
-                onBackClick = if (returnToSettings) ({ screen = "settings" }) else null
+                onBackClick = if (returnToSettings) ({ screen = "settings" }) else ({ cancelSetup() })
             )
             "selection_settings" -> WaitingConfigurationScreen(
                 deviceName = device?.displayName ?: deviceName,

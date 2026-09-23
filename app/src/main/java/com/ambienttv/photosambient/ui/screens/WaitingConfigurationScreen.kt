@@ -251,7 +251,7 @@ fun WaitingConfigurationScreen(
             ) {
                 if (onBackClick != null) {
                     TvButton(
-                        text = "Back",
+                        text = if (activelyPolling) "Cancel setup" else "Back",
                         onClick = onBackClick,
                         variant = ButtonVariant.SECONDARY
                     )
