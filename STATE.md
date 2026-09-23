@@ -4,9 +4,9 @@ Last baseline review: **2026-09-23**
 
 ## Source provenance
 
-This repository is being reconstructed from the earlier `UX Demonstration` workspace used for the Google Photos Ambient API partner-review prototype. The archive intentionally excluded `node_modules` and generated review media such as screenshots/videos.
+This repository was reconstructed from the earlier `UX Demonstration` workspace used for the Google Photos Ambient API partner-review prototype. The archive intentionally excluded `node_modules` and generated review media such as screenshots/videos.
 
-There was no `.git` directory or GitHub remote in the recovered workspace, so prior commit history is unavailable. This repository becomes the canonical source history from this baseline forward.
+There was no `.git` directory or GitHub remote in the recovered workspace, so prior commit history is unavailable. This repository is the canonical source history from this baseline forward.
 
 ## Verified from source inspection
 
@@ -28,29 +28,23 @@ There was no `.git` directory or GitHub remote in the recovered workspace, so pr
 ### Not production-ready
 
 - `MainActivity` currently instantiates `MockAmbientPhotosRepository` directly.
-- Production authorization methods throw `UnsupportedOperationException` while credentials/access are unavailable.
+- Production authorization methods remain intentionally incomplete while credentials/access are unavailable.
 - Device polling/media listing/disconnect/update methods in the production repository are placeholders.
 - The QR component is procedural demonstration artwork, not a real encoded QR implementation.
 - Production credential/token storage does not exist.
 - Weather is not implemented.
 - Advanced playback settings are not implemented.
 - Production error/retry/offline behavior is not implemented.
-- Automated Android tests are minimal/absent in this recovered baseline.
+- Automated Android tests are minimal/absent in this reconstructed baseline.
 
-## Build/bootstrap finding
+## Repository/bootstrap status
 
-The recovered archive contains `gradle/wrapper/gradle-wrapper.properties` configured for Gradle 8.5, but **does not contain `gradle-wrapper.jar`**. The recovered POSIX `gradlew` file is also incomplete and should not be trusted.
-
-The repository CI therefore uses an installed Gradle 8.5 initially. The first bootstrap task is to regenerate a canonical Gradle 8.5 wrapper from a trusted Gradle installation and commit:
-
-- `gradlew`
-- `gradlew.bat`
-- `gradle/wrapper/gradle-wrapper.jar`
-- `gradle/wrapper/gradle-wrapper.properties`
-
-After that, CI should be switched to `./gradlew` as the primary path.
-
-A full Android build was **not executed during repository reconstruction** because the reconstruction environment did not contain an Android SDK or Gradle installation.
+- Repository: `Radioffka/ambient-gallery`.
+- Canonical Gradle version: **8.5**.
+- `gradlew`, `gradlew.bat`, and `gradle/wrapper/gradle-wrapper.jar` were restored from the official Gradle `v8.5.0` source tree during repository bootstrap.
+- GitHub Actions validates the wrapper and uses `./gradlew :app:assembleDebug`.
+- The reconstructed source tree was checked for obvious credentials/secrets before publication; none were found.
+- Initial Android CI was triggered after import. Record its verified outcome here after completion.
 
 ## Google API status
 
@@ -60,10 +54,10 @@ Production access/credentials remain pending the Google Photos Partner Program p
 
 ## Immediate next step
 
-Run the repository bootstrap task in `CODEX_BOOTSTRAP_PROMPT.md`:
+Run the baseline verification task in `CODEX_BOOTSTRAP_PROMPT.md`:
 
-1. restore a canonical Gradle wrapper,
-2. establish a reproducible debug build,
-3. fix only build-blocking baseline issues,
-4. add basic tests where they provide immediate confidence,
-5. update this state file with verified results.
+1. establish a reproducible debug build,
+2. fix only build-blocking baseline issues,
+3. add a small number of high-value tests where useful,
+4. verify repository hygiene and CI,
+5. update this state file with exact verified results.

@@ -128,24 +128,22 @@ Recommended local environment:
 
 - Android Studio with Android SDK 34 installed.
 - JDK 17 for Android/Gradle builds.
-- Gradle 8.5 when regenerating the wrapper.
+- Canonical Gradle 8.5 wrapper included in the repository.
 - Node.js 20+ only if using the web UX simulator.
 - `ffmpeg` in `PATH` only when building the optional review walkthrough video.
 
 ### Android build
 
-The source archive used to reconstruct this repository did not contain `gradle-wrapper.jar`, and its POSIX `gradlew` script was incomplete. CI intentionally uses an installed Gradle 8.5 as a recovery path. The first Codex bootstrap task should regenerate and commit a canonical Gradle 8.5 wrapper, then use the wrapper for subsequent builds.
-
-Until the wrapper is restored, from an environment with Gradle 8.5 installed:
-
-```bash
-gradle :app:assembleDebug
-```
-
-After wrapper restoration:
+The repository contains the canonical Gradle 8.5 wrapper. The wrapper scripts and `gradle-wrapper.jar` were restored during repository bootstrap from the official Gradle `v8.5.0` source tree.
 
 ```bash
 ./gradlew :app:assembleDebug
+```
+
+On Windows:
+
+```powershell
+.\gradlew.bat :app:assembleDebug
 ```
 
 ### UX simulator
