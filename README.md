@@ -2,7 +2,7 @@
 
 Ambient Gallery is an Android TV / Google TV application for displaying a user's selected Google Photos media as a full-screen ambient experience. The long-term product goal is to combine high-quality photo playback, smooth video playback, privacy-safe Google Photos integration, weather information, and more playback/configuration controls than the standard Google TV Ambient experience.
 
-This repository starts from the native Android TV UX prototype originally prepared for Google Photos Partner Program review. The prototype is useful code, not a throw-away mockup: the TV UI, navigation, photo/video slideshow controller, Media3 video playback, and repository abstraction already exist. Production Google Photos Ambient API access is still gated by partner/API approval, so the current runtime uses a deterministic mock repository.
+This repository starts from the native Android TV UX prototype originally prepared for Google Photos Partner Program review. The Android TV MVP now uses the real Google Photos Ambient API by default. Test-account OAuth, device creation, source selection, and photo metadata were verified with direct API probes; public OAuth verification and Ambient video behavior remain unresolved.
 
 ## Current status
 
@@ -12,14 +12,14 @@ This repository starts from the native Android TV UX prototype originally prepar
 | Compose for TV UI and D-pad navigation | Implemented baseline |
 | Mixed photo + video slideshow | Implemented baseline |
 | Media3 / ExoPlayer video playback | Implemented baseline |
-| Google Photos UX review flow | Implemented with mock data |
+| Google Photos TV setup flow | Real device OAuth and source selection |
 | `AmbientPhotosRepository` abstraction | Implemented |
-| Production `GoogleAmbientPhotosRepository` | Skeleton only |
-| Real Google OAuth / Ambient API calls | Blocked pending approved credentials/access |
-| Real QR generation | Pending, current review QR is procedural/demo-only |
+| Production `GoogleAmbientPhotosRepository` | MVP implementation |
+| Real Google OAuth / Ambient API calls | Implemented; runtime TV test still needed |
+| Real QR generation | Implemented for OAuth and `settingsUri` |
 | Weather overlay/integration | Planned |
 | Advanced slideshow settings | Planned |
-| Production persistence/error handling | Planned |
+| Encrypted token/device persistence | Implemented; extended recovery remains planned |
 | Play Store / release hardening | Not started |
 
 See [`STATE.md`](STATE.md) for the exact working baseline and [`ROADMAP.md`](ROADMAP.md) for the planned development sequence.
@@ -54,7 +54,7 @@ AmbientPhotosRepository   AmbientSlideshowController
         |                        |
         +-- Mock implementation  +-- photo timing
         |                        +-- play/pause
-        +-- Google skeleton      +-- transient overlay
+        +-- Google API MVP       +-- transient overlay
                                  +-- Media3/ExoPlayer
 ```
 
@@ -88,13 +88,13 @@ The production service documented by Google uses:
 https://photosambient.googleapis.com
 ```
 
-The codebase models the documented `v1.devices` and `v1.mediaItems` resources and the OAuth scope:
+The codebase uses the documented `v1.devices` and `v1.mediaItems` resources and the OAuth scope:
 
 ```text
 https://www.googleapis.com/auth/photosambient.mediaitems
 ```
 
-Important: Ambient Gallery is a partner-integration project. Generic Google OAuth documentation for limited-input devices does not necessarily expose every partner-only scope. Do not infer production authentication behavior from generic OAuth docs alone. Before implementing or changing a real Google flow, confirm it against current official Ambient API and partner documentation.
+Important: The OAuth app is not yet verified for public use. A different Google account may see an unverified-app warning or an access restriction even though the API worked with the original test account. See [STATE.md](STATE.md) for observed results and remaining blockers.
 
 Official references:
 
@@ -173,7 +173,15 @@ Never commit:
 - private Partner Program documentation that is not intended for source control.
 - personal Google Photos media.
 
-When production credentials become available, introduce a documented local/CI secret-injection mechanism before implementing live API calls.
+To build a TV APK with an existing **TV and limited input** OAuth client JSON, keep that JSON outside Git and run:
+
+```powershell
+.\scripts\build-tv.ps1 -OAuthJsonPath 'C:\path\to\client_secret.json'
+```
+
+The script passes credentials to Gradle through process environment variables. Alternatively, create ignored `ambient-oauth.properties` with `clientId=...` and `clientSecret=...`, then run `.\gradlew.bat :app:assembleDebug`. The APK is at `app/build/outputs/apk/debug/app-debug.apk`; install it with `adb install -r <apk-path>`. The Google account is selected during device authorization on `google.com/device`, so the same configured APK can be tested with another consenting account. Disconnect on TV before switching accounts.
+
+**A TV client secret is embedded in a configured APK and cannot be kept confidential from someone who has the APK.** Keep the client JSON and configured APK private; never commit either. A build without credentials succeeds but shows a configuration message instead of starting OAuth. For a visual demo without Google API access, run Gradle with `-PambientDemoMode=true`.
 
 ## Working with Codex
 

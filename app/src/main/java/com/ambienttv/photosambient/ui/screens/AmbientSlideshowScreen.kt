@@ -31,13 +31,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import okhttp3.Headers
 import com.ambienttv.photosambient.data.model.AmbientMediaItem
 import com.ambienttv.photosambient.data.model.MediaType
 import com.ambienttv.photosambient.slideshow.AmbientSlideshowController
@@ -57,6 +61,7 @@ import com.ambienttv.photosambient.ui.theme.GoogleBlue
 @Composable
 fun AmbientSlideshowScreen(
     controller: AmbientSlideshowController,
+    accessToken: String? = null,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -84,12 +89,13 @@ fun AmbientSlideshowScreen(
             ) { targetItem ->
                 when (targetItem.mediaType) {
                     MediaType.PHOTO -> {
-                        PhotoPlayerView(item = targetItem)
+                        PhotoPlayerView(item = targetItem, accessToken = accessToken)
                     }
                     MediaType.VIDEO -> {
                         VideoPlayerView(
                             item = targetItem,
                             isPlaying = isPlaying,
+                            accessToken = accessToken,
                             onVideoCompleted = { controller.onVideoCompleted() }
                         )
                     }
@@ -119,19 +125,22 @@ fun AmbientSlideshowScreen(
 }
 
 @Composable
-private fun PhotoPlayerView(item: AmbientMediaItem) {
+private fun PhotoPlayerView(item: AmbientMediaItem, accessToken: String?) {
     val mediaUrl = item.playbackUrl() ?: item.baseUrl
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(mediaUrl)
-                .crossfade(true)
-                .build(),
+            model = ImageRequest.Builder(LocalContext.current).apply {
+                data(mediaUrl)
+                if (item.useGoogleBaseUrl && !accessToken.isNullOrBlank()) {
+                    headers(Headers.Builder().add("Authorization", "Bearer $accessToken").build())
+                }
+                crossfade(true)
+            }.build(),
             contentDescription = item.title.ifBlank { item.albumTitle },
-            contentScale = ContentScale.Crop,
+            contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize()
         )
     }
@@ -142,12 +151,19 @@ private fun PhotoPlayerView(item: AmbientMediaItem) {
 private fun VideoPlayerView(
     item: AmbientMediaItem,
     isPlaying: Boolean,
+    accessToken: String?,
     onVideoCompleted: () -> Unit
 ) {
     val mediaUrl = item.playbackUrl() ?: item.baseUrl
     val context = LocalContext.current
-    val exoPlayer = remember(item.id) {
-        ExoPlayer.Builder(context).build().apply {
+    val exoPlayer = remember(item.id, accessToken) {
+        val dataSource = DefaultHttpDataSource.Factory()
+        if (item.useGoogleBaseUrl && !accessToken.isNullOrBlank()) {
+            dataSource.setDefaultRequestProperties(mapOf("Authorization" to "Bearer $accessToken"))
+        }
+        ExoPlayer.Builder(context)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource))
+            .build().apply {
             setMediaItem(MediaItem.fromUri(Uri.parse(mediaUrl)))
             repeatMode = Player.REPEAT_MODE_OFF
             prepare()
@@ -158,11 +174,14 @@ private fun VideoPlayerView(
                         onVideoCompleted()
                     }
                 }
+                override fun onPlayerError(error: PlaybackException) {
+                    onVideoCompleted()
+                }
             })
         }
     }
 
-    DisposableEffect(item.id) {
+    DisposableEffect(item.id, accessToken) {
         onDispose {
             exoPlayer.release()
         }
@@ -192,20 +211,5 @@ private fun VideoPlayerView(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Subtle unobtrusive video badge in top corner for review verification
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(24.dp)
-                .background(Color(0x99000000), RoundedCornerShape(8.dp))
-                .padding(horizontal = 10.dp, vertical = 5.dp)
-        ) {
-            Text(
-                text = "▶ VIDEO AMBIENT STREAM",
-                color = Color(0xFF8AB4F8),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
     }
 }

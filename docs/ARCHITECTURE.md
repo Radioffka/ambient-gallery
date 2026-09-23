@@ -19,9 +19,9 @@ Compose-based screens and reusable TV components. Navigation is coordinated by `
 `AmbientPhotosRepository` is the contract consumed by the UI. The repository currently has two implementations:
 
 - `MockAmbientPhotosRepository`: deterministic prototype/review behavior.
-- `GoogleAmbientPhotosRepository`: production skeleton, intentionally incomplete while partner credentials/access are unavailable.
+- `GoogleAmbientPhotosRepository`: TV OAuth, Ambient device creation/polling, media listing, token refresh and device deletion. It is selected by default when local build credentials are provided.
 
-Production code must not silently fall back to mock behavior after a real API error. Mock mode must be an explicit development/demo choice.
+Production code does not fall back to mock behavior after a real API error. Mock mode requires the explicit `-PambientDemoMode=true` build option.
 
 ### Playback
 
@@ -34,7 +34,7 @@ Owns high-level ambient playback state such as current media, play/pause, photo 
 ```text
 UI -> repository interface
 UI -> slideshow controller
-production repository -> HTTP/auth/persistence adapters (future)
+production repository -> HTTP + Android Keystore-backed session store
 mock repository -> deterministic in-memory demo data
 ```
 
@@ -52,9 +52,7 @@ A future bootstrap step should remove the hardcoded repository instantiation fro
 
 ## Persistence direction
 
-The prototype is mostly in-memory. Production integration will require durable device/auth state. Add persistence only after the approved Google authentication requirements are known, especially for token handling.
-
-Android Keystore-backed storage or encrypted app storage may be appropriate, but the exact design must follow the actual credentials/token model rather than assumptions.
+The live repository encrypts the refresh/access tokens and device ID with an Android Keystore AES-GCM key. It refreshes access tokens and resumes a pending source-selection session after app restart. Android backup is disabled so ciphertext is not restored without its device-bound key. The OAuth client secret is supplied only at build time from a local file or environment variables and is embedded in the configured APK because Google's TV token endpoint requires it; treat the APK as private test material.
 
 ## Simulator
 

@@ -46,10 +46,10 @@ import com.ambienttv.photosambient.ui.theme.TextSecondary
  */
 @Composable
 fun OAuthQrScreen(
-    userCode: String = "WDZX-9428",
-    verificationUrl: String = "www.google.com/device",
+    userCode: String,
+    verificationUrl: String,
+    qrPayload: String,
     deviceName: String = "Living Room TV",
-    onSimulateAuthSuccess: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -144,11 +144,12 @@ fun OAuthQrScreen(
                 QrCodeCard(
                     userCode = userCode,
                     verificationUrl = verificationUrl,
+                    qrPayload = qrPayload,
                     modifier = Modifier.weight(0.8f)
                 )
             }
 
-            // Bottom Navigation & Simulated Trigger for Demo Reviewers
+            // Authorization advances automatically when Google returns a token.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -170,12 +171,6 @@ fun OAuthQrScreen(
                         fontSize = 13.sp
                     )
 
-                    // Action to advance demo
-                    TvButton(
-                        text = "Simulate Authorization Done  ➔",
-                        onClick = onSimulateAuthSuccess,
-                        variant = ButtonVariant.PRIMARY
-                    )
                 }
             }
         }

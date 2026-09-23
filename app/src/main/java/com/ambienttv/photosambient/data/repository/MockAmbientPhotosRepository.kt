@@ -42,6 +42,9 @@ class MockAmbientPhotosRepository(
     private val _mediaItems = MutableStateFlow<List<AmbientMediaItem>>(emptyList())
     override val mediaItems: StateFlow<List<AmbientMediaItem>> = _mediaItems.asStateFlow()
 
+    private val _accessToken = MutableStateFlow<String?>(null)
+    override val accessToken: StateFlow<String?> = _accessToken.asStateFlow()
+
     private var activeDeviceName: String = "Living Room TV"
     private var activeOAuthState: AmbientOAuthState = AmbientOAuthState.create("Living Room TV")
 

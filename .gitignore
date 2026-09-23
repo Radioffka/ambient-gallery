@@ -21,6 +21,7 @@ keystore.properties
 .env.*
 !.env.example
 secrets.properties
+ambient-oauth.properties
 
 # OS
 .DS_Store
