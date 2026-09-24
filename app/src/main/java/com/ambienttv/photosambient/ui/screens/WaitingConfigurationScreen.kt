@@ -27,14 +27,16 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ambienttv.photosambient.ui.components.ButtonVariant
 import com.ambienttv.photosambient.ui.components.GooglePhotosPinwheelIcon
-import com.ambienttv.photosambient.ui.components.ProceduralQrMatrix
+import com.ambienttv.photosambient.ui.components.QrCodeImage
 import com.ambienttv.photosambient.ui.components.TvButton
+import com.ambienttv.photosambient.ui.components.rememberInitialFocusRequester
 import com.ambienttv.photosambient.ui.theme.BackgroundDark
 import com.ambienttv.photosambient.ui.theme.GoogleBlue
 import com.ambienttv.photosambient.ui.theme.SurfaceCard
@@ -48,17 +50,19 @@ import com.ambienttv.photosambient.ui.theme.TextSecondary
  * - Displays "Waiting for Google Photos setup"
  * - Accurately represents that media source selection occurs in Google Photos via `settingsUri`
  * - In production, the QR code is generated from the output-only `settingsUri` returned by the Ambient API
- * - Simulates polling `devices.get` for `mediaSourcesSet = true`
+ * - Shows polling status while the host observes `devices.get`
  * - Does not present a fake in-app photo picker
  */
 @Composable
 fun WaitingConfigurationScreen(
     deviceName: String = "Living Room TV",
     settingsUri: String? = null,
-    onMediaSourcesConfigured: () -> Unit,
-    onBackClick: () -> Unit,
+    onBackClick: (() -> Unit)? = null,
+    statusMessage: String = "",
+    activelyPolling: Boolean = true,
     modifier: Modifier = Modifier
 ) {
+    val primaryFocus = rememberInitialFocusRequester()
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.5f,
@@ -141,14 +145,16 @@ fun WaitingConfigurationScreen(
                 ) {
                     Column {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            CircularProgressIndicator(
-                                modifier = Modifier.size(28.dp),
-                                color = GoogleBlue,
-                                strokeWidth = 3.dp
-                            )
+                            if (activelyPolling) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(28.dp),
+                                    color = GoogleBlue,
+                                    strokeWidth = 3.dp
+                                )
+                            }
                             Spacer(modifier = Modifier.width(16.dp))
                             Text(
-                                text = "Polling Ambient API (mediaSourcesSet == false)",
+                                text = if (activelyPolling) "Checking Google Photos selection" else "Change Google Photos selection",
                                 color = GoogleBlue.copy(alpha = pulseAlpha),
                                 fontSize = 14.sp,
                                 fontWeight = FontWeight.SemiBold
@@ -167,7 +173,10 @@ fun WaitingConfigurationScreen(
                         Spacer(modifier = Modifier.height(10.dp))
 
                         Text(
-                            text = "In the Google Photos page opened on your phone via settingsUri, select which albums or recent highlights should appear on $deviceName.\n\nOnce saved in Google Photos, this screen will automatically start playing your selected media items.",
+                                text = if (activelyPolling)
+                                    "Scan the QR code with your phone. In the Google Photos app, select the albums for $deviceName. This TV will begin the slideshow when Google makes media available."
+                                else
+                                    "Scan the QR code with your phone and change the albums for $deviceName in Google Photos. Then return to Settings to restart the slideshow.",
                             color = TextSecondary,
                             fontSize = 15.sp,
                             lineHeight = 22.sp
@@ -175,7 +184,6 @@ fun WaitingConfigurationScreen(
 
                         Spacer(modifier = Modifier.height(20.dp))
 
-                        // API details note for reviewers
                         Box(
                             modifier = Modifier
                                 .clip(RoundedCornerShape(10.dp))
@@ -183,7 +191,7 @@ fun WaitingConfigurationScreen(
                                 .padding(12.dp)
                         ) {
                             Text(
-                                text = "API Contract: In production, app polls devices.get respecting pollingConfig.pollInterval returned by the Ambient API until mediaSourcesSet == true.",
+                                text = statusMessage.ifBlank { "Waiting for the album selection in Google Photos." },
                                 color = Color(0xFF8AB4F8),
                                 fontSize = 12.sp
                             )
@@ -215,19 +223,21 @@ fun WaitingConfigurationScreen(
 
                         Box(
                             modifier = Modifier
-                                .size(170.dp)
+                                .size(260.dp)
                                 .clip(RoundedCornerShape(12.dp))
                                 .background(Color.White)
                                 .padding(10.dp),
                             contentAlignment = Alignment.Center
                         ) {
-                            ProceduralQrMatrix(modifier = Modifier.size(150.dp))
+                            if (!settingsUri.isNullOrBlank()) {
+                                QrCodeImage(payload = settingsUri, modifier = Modifier.size(240.dp))
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(14.dp))
 
                         Text(
-                            text = "Generated from API settingsUri",
+                            text = "Google Photos settings link",
                             color = Color(0xFF8AB4F8),
                             fontSize = 12.sp,
                             fontWeight = FontWeight.Medium
@@ -242,28 +252,15 @@ fun WaitingConfigurationScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                TvButton(
-                    text = "Back to Setup",
-                    onClick = onBackClick,
-                    variant = ButtonVariant.SECONDARY
-                )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Text(
-                        text = "For demonstration review: trigger mediaSourcesSet = true",
-                        color = Color(0xFF6B788E),
-                        fontSize = 13.sp
-                    )
-
+                if (onBackClick != null) {
                     TvButton(
-                        text = "Simulate Sources Configured  ➔",
-                        onClick = onMediaSourcesConfigured,
-                        variant = ButtonVariant.PRIMARY
+                        text = if (activelyPolling) "Cancel setup" else "Back",
+                        onClick = onBackClick,
+                        variant = ButtonVariant.SECONDARY,
+                        modifier = Modifier.focusRequester(primaryFocus)
                     )
                 }
+
             }
         }
     }

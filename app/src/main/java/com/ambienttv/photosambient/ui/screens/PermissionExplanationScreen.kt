@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -27,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import com.ambienttv.photosambient.ui.components.ButtonVariant
 import com.ambienttv.photosambient.ui.components.GooglePhotosPinwheelIcon
 import com.ambienttv.photosambient.ui.components.TvButton
+import com.ambienttv.photosambient.ui.components.rememberInitialFocusRequester
 import com.ambienttv.photosambient.ui.theme.BackgroundDark
 import com.ambienttv.photosambient.ui.theme.GoogleBlue
 import com.ambienttv.photosambient.ui.theme.SurfaceCard
@@ -47,6 +49,7 @@ fun PermissionExplanationScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val primaryFocus = rememberInitialFocusRequester()
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -136,7 +139,8 @@ fun PermissionExplanationScreen(
                     TvButton(
                         text = "Continue",
                         onClick = onContinueClick,
-                        variant = ButtonVariant.PRIMARY
+                        variant = ButtonVariant.PRIMARY,
+                        modifier = Modifier.focusRequester(primaryFocus)
                     )
                 }
             }

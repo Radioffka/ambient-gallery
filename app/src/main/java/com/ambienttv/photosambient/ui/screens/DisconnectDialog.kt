@@ -16,9 +16,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusProperties
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -26,6 +30,7 @@ import androidx.compose.ui.unit.sp
 import com.ambienttv.photosambient.ui.components.ButtonVariant
 import com.ambienttv.photosambient.ui.components.GooglePhotosPinwheelIcon
 import com.ambienttv.photosambient.ui.components.TvButton
+import com.ambienttv.photosambient.ui.components.rememberInitialFocusRequester
 import com.ambienttv.photosambient.ui.theme.BackgroundDark
 import com.ambienttv.photosambient.ui.theme.DangerRed
 import com.ambienttv.photosambient.ui.theme.SurfaceCard
@@ -48,6 +53,8 @@ fun DisconnectDialog(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val primaryFocus = rememberInitialFocusRequester()
+    val confirmFocus = remember { FocusRequester() }
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -104,7 +111,10 @@ fun DisconnectDialog(
                     TvButton(
                         text = "Cancel",
                         onClick = onCancel,
-                        variant = ButtonVariant.SECONDARY
+                        variant = ButtonVariant.SECONDARY,
+                        modifier = Modifier
+                            .focusProperties { right = confirmFocus }
+                            .focusRequester(primaryFocus)
                     )
 
                     Spacer(modifier = Modifier.width(16.dp))
@@ -112,7 +122,10 @@ fun DisconnectDialog(
                     TvButton(
                         text = "Disconnect Google Photos",
                         onClick = onConfirmDisconnect,
-                        variant = ButtonVariant.DANGER
+                        variant = ButtonVariant.DANGER,
+                        modifier = Modifier
+                            .focusProperties { left = primaryFocus }
+                            .focusRequester(confirmFocus)
                     )
                 }
             }

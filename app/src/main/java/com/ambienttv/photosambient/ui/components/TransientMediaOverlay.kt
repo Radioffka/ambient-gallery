@@ -22,8 +22,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -55,6 +59,10 @@ fun TransientMediaOverlay(
     onPrevious: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val primaryFocus = remember { FocusRequester() }
+    LaunchedEffect(visible, mediaItem?.id) {
+        if (visible && mediaItem != null) primaryFocus.requestFocus()
+    }
     AnimatedVisibility(
         visible = visible && mediaItem != null,
         enter = fadeIn() + slideInVertically(initialOffsetY = { it / 3 }),
@@ -163,7 +171,8 @@ fun TransientMediaOverlay(
                     TvButton(
                         text = if (isPlaying) "Pause" else "Play",
                         onClick = onTogglePlayPause,
-                        variant = ButtonVariant.SECONDARY
+                        variant = ButtonVariant.SECONDARY,
+                        modifier = Modifier.focusRequester(primaryFocus)
                     )
                     TvButton(
                         text = "Next",

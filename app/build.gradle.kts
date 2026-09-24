@@ -1,7 +1,16 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
+
+// This file stays on the developer machine and is never checked in.
+val ambientOauth = Properties().apply {
+    val file = rootProject.file("ambient-oauth.properties")
+    if (file.isFile) file.inputStream().use(::load)
+}
+fun quoted(value: String): String = "\"" + value.replace("\\", "\\\\").replace("\"", "\\\"") + "\""
 
 android {
     namespace = "com.ambienttv.photosambient"
@@ -13,6 +22,10 @@ android {
         targetSdk = 34
         versionCode = 1
         versionName = "1.0.0"
+
+        buildConfigField("String", "AMBIENT_CLIENT_ID", quoted(providers.environmentVariable("AMBIENT_CLIENT_ID").orNull ?: ambientOauth.getProperty("clientId", "")))
+        buildConfigField("String", "AMBIENT_CLIENT_SECRET", quoted(providers.environmentVariable("AMBIENT_CLIENT_SECRET").orNull ?: ambientOauth.getProperty("clientSecret", "")))
+        buildConfigField("boolean", "AMBIENT_DEMO_MODE", providers.gradleProperty("ambientDemoMode").orNull ?: "false")
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -38,6 +51,7 @@ android {
     }
     buildFeatures {
         compose = true
+        buildConfig = true
     }
     composeOptions {
         kotlinCompilerExtensionVersion = "1.5.8"
@@ -80,6 +94,8 @@ dependencies {
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
+
+    implementation("com.google.zxing:core:3.5.4")
 
     debugImplementation("androidx.compose.ui:ui-tooling")
     debugImplementation("androidx.compose.ui:ui-test-manifest")

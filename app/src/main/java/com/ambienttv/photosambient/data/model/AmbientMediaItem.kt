@@ -6,8 +6,8 @@ enum class MediaType {
 }
 
 /**
- * Status of video processing in Google Photos.
- * Video media items can only be streamed or played once processing has completed.
+ * Local playback eligibility hint for demo items. The documented Ambient media
+ * response does not expose a video processing status.
  */
 enum class VideoProcessingStatus {
     UNSPECIFIED,
@@ -45,22 +45,24 @@ data class AmbientMediaItem(
     val title: String = "",
     val albumTitle: String = "Family Highlights",
     val captureDate: String = "August 2026",
-    val locationName: String? = null
+    val locationName: String? = null,
+    /** True only for base URLs returned by Google Photos, not direct demo URLs. */
+    val useGoogleBaseUrl: Boolean = false
 ) {
     /**
      * Constructs the compliant playback URL for the media item.
      *
      * In accordance with Google Photos Ambient API documentation:
-     * - Photos use the standard `baseUrl` (with optional dimension parameters).
-     * - Videos must only be played when [videoProcessingStatus] is [VideoProcessingStatus.READY],
-     *   requesting the transcoded stream via the documented `=dv` parameter.
+     * - Ambient photos request dimensions from Google's base URL.
+     * - If Ambient ever returns a video MIME type, attempt the documented `=dv`
+     *   request. Real Ambient video support remains unverified.
      */
     fun playbackUrl(): String? {
         return when (mediaType) {
-            MediaType.PHOTO -> baseUrl
+            MediaType.PHOTO -> if (useGoogleBaseUrl) "$baseUrl=w1920-h1080" else baseUrl
             MediaType.VIDEO -> {
                 if (videoProcessingStatus == VideoProcessingStatus.READY) {
-                    "$baseUrl=dv"
+                    if (useGoogleBaseUrl) "$baseUrl=dv" else baseUrl
                 } else {
                     null // Video is still processing or failed in Google Photos
                 }

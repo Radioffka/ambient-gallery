@@ -5,8 +5,15 @@ import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.Text
 import androidx.compose.material3.Surface
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.sp
+import com.ambienttv.photosambient.data.repository.AmbientPhotosRepository
+import com.ambienttv.photosambient.data.repository.GoogleAmbientPhotosRepository
 import com.ambienttv.photosambient.data.repository.MockAmbientPhotosRepository
 import com.ambienttv.photosambient.slideshow.AmbientSlideshowController
 import com.ambienttv.photosambient.ui.navigation.AmbientNavHost
@@ -15,7 +22,10 @@ import com.ambienttv.photosambient.ui.theme.BackgroundDark
 
 class MainActivity : ComponentActivity() {
 
-    private val repository = MockAmbientPhotosRepository()
+    private val repository: AmbientPhotosRepository by lazy {
+        if (BuildConfig.AMBIENT_DEMO_MODE) MockAmbientPhotosRepository()
+        else GoogleAmbientPhotosRepository(this, BuildConfig.AMBIENT_CLIENT_ID, BuildConfig.AMBIENT_CLIENT_SECRET)
+    }
     private val slideshowController = AmbientSlideshowController()
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,10 +36,19 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = BackgroundDark
                 ) {
-                    AmbientNavHost(
-                        repository = repository,
-                        slideshowController = slideshowController
-                    )
+                    if (!BuildConfig.AMBIENT_DEMO_MODE &&
+                        (BuildConfig.AMBIENT_CLIENT_ID.isBlank() || BuildConfig.AMBIENT_CLIENT_SECRET.isBlank())
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text("Build this APK with local Ambient OAuth credentials.", color = Color.White, fontSize = 24.sp)
+                        }
+                    } else {
+                        AmbientNavHost(
+                            repository = repository,
+                            slideshowController = slideshowController,
+                            demoMode = BuildConfig.AMBIENT_DEMO_MODE
+                        )
+                    }
                 }
             }
         }

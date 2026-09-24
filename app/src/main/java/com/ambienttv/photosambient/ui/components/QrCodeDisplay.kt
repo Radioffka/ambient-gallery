@@ -1,5 +1,7 @@
 package com.ambienttv.photosambient.ui.components
 
+import android.graphics.Bitmap
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -15,6 +17,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,6 +25,7 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
@@ -31,11 +35,15 @@ import com.ambienttv.photosambient.ui.theme.GoogleBlue
 import com.ambienttv.photosambient.ui.theme.SurfaceCard
 import com.ambienttv.photosambient.ui.theme.TextPrimary
 import com.ambienttv.photosambient.ui.theme.TextSecondary
+import com.google.zxing.BarcodeFormat
+import com.google.zxing.EncodeHintType
+import com.google.zxing.qrcode.QRCodeWriter
 
 @Composable
 fun QrCodeCard(
     userCode: String,
     verificationUrl: String,
+    qrPayload: String = verificationUrl,
     modifier: Modifier = Modifier,
     qrSize: Dp = 220.dp
 ) {
@@ -60,7 +68,7 @@ fun QrCodeCard(
                     .padding(14.dp),
                 contentAlignment = Alignment.Center
             ) {
-                ProceduralQrMatrix(modifier = Modifier.size(qrSize - 28.dp))
+                QrCodeImage(payload = qrPayload, modifier = Modifier.size(qrSize - 28.dp))
             }
 
             Spacer(modifier = Modifier.height(20.dp))
@@ -180,5 +188,28 @@ fun ProceduralQrMatrix(
         dataPoints.forEach { (col, row) ->
             drawBlock(col, row)
         }
+    }
+}
+
+@Composable
+fun QrCodeImage(payload: String, modifier: Modifier = Modifier) {
+    val bitmap = remember(payload) {
+        if (payload.isBlank()) null else {
+            val matrix = QRCodeWriter().encode(
+                payload,
+                BarcodeFormat.QR_CODE,
+                512,
+                512,
+                mapOf(EncodeHintType.MARGIN to 1)
+            )
+            val pixels = IntArray(512 * 512) { index ->
+                if (matrix[index % 512, index / 512]) android.graphics.Color.BLACK
+                else android.graphics.Color.WHITE
+            }
+            Bitmap.createBitmap(pixels, 512, 512, Bitmap.Config.ARGB_8888).asImageBitmap()
+        }
+    }
+    if (bitmap != null) {
+        Image(bitmap = bitmap, contentDescription = "Scan setup link", modifier = modifier)
     }
 }

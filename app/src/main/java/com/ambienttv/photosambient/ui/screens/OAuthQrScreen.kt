@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -28,6 +29,7 @@ import com.ambienttv.photosambient.ui.components.ButtonVariant
 import com.ambienttv.photosambient.ui.components.GooglePhotosPinwheelIcon
 import com.ambienttv.photosambient.ui.components.QrCodeCard
 import com.ambienttv.photosambient.ui.components.TvButton
+import com.ambienttv.photosambient.ui.components.rememberInitialFocusRequester
 import com.ambienttv.photosambient.ui.theme.BackgroundDark
 import com.ambienttv.photosambient.ui.theme.GoogleBlue
 import com.ambienttv.photosambient.ui.theme.SurfaceCard
@@ -46,13 +48,14 @@ import com.ambienttv.photosambient.ui.theme.TextSecondary
  */
 @Composable
 fun OAuthQrScreen(
-    userCode: String = "WDZX-9428",
-    verificationUrl: String = "www.google.com/device",
+    userCode: String,
+    verificationUrl: String,
+    qrPayload: String,
     deviceName: String = "Living Room TV",
-    onSimulateAuthSuccess: () -> Unit,
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val primaryFocus = rememberInitialFocusRequester()
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -144,11 +147,12 @@ fun OAuthQrScreen(
                 QrCodeCard(
                     userCode = userCode,
                     verificationUrl = verificationUrl,
+                    qrPayload = qrPayload,
                     modifier = Modifier.weight(0.8f)
                 )
             }
 
-            // Bottom Navigation & Simulated Trigger for Demo Reviewers
+            // Authorization advances automatically when Google returns a token.
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -157,7 +161,8 @@ fun OAuthQrScreen(
                 TvButton(
                     text = "Back",
                     onClick = onBackClick,
-                    variant = ButtonVariant.SECONDARY
+                    variant = ButtonVariant.SECONDARY,
+                    modifier = Modifier.focusRequester(primaryFocus)
                 )
 
                 Row(
@@ -170,12 +175,6 @@ fun OAuthQrScreen(
                         fontSize = 13.sp
                     )
 
-                    // Action to advance demo
-                    TvButton(
-                        text = "Simulate Authorization Done  ➔",
-                        onClick = onSimulateAuthSuccess,
-                        variant = ButtonVariant.PRIMARY
-                    )
                 }
             }
         }

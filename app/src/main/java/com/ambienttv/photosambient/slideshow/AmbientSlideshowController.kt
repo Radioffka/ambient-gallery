@@ -89,6 +89,11 @@ class AmbientSlideshowController(
         }
     }
 
+    fun onVideoFailed(id: String) {
+        val remaining = _mediaQueue.value.filterNot { it.id == id }
+        if (remaining.size != _mediaQueue.value.size) setQueue(remaining)
+    }
+
     private fun restartTimer() {
         slideshowJob?.cancel()
         val item = _currentMediaItem.value ?: return
