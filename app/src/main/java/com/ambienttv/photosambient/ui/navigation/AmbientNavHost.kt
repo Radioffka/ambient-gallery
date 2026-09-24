@@ -19,6 +19,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -27,6 +28,7 @@ import com.ambienttv.photosambient.data.repository.AmbientPhotosRepository
 import com.ambienttv.photosambient.slideshow.AmbientSlideshowController
 import com.ambienttv.photosambient.ui.components.ButtonVariant
 import com.ambienttv.photosambient.ui.components.TvButton
+import com.ambienttv.photosambient.ui.components.rememberInitialFocusRequester
 import com.ambienttv.photosambient.ui.screens.AmbientSlideshowScreen
 import com.ambienttv.photosambient.ui.screens.DeviceNameScreen
 import com.ambienttv.photosambient.ui.screens.DisconnectDialog
@@ -308,6 +310,7 @@ private fun StatusScreen(message: String) {
 
 @Composable
 private fun ErrorScreen(message: String, onRetry: () -> Unit) {
+    val primaryFocus = rememberInitialFocusRequester()
     Box(Modifier.fillMaxSize().background(BackgroundDark), contentAlignment = Alignment.Center) {
         Column(
             modifier = Modifier.padding(48.dp),
@@ -316,7 +319,12 @@ private fun ErrorScreen(message: String, onRetry: () -> Unit) {
         ) {
             Text("Google Photos setup needs attention", color = Color.White, fontSize = 30.sp)
             Text(message, color = Color.LightGray, fontSize = 18.sp)
-            TvButton(text = "Retry", onClick = onRetry, variant = ButtonVariant.PRIMARY)
+            TvButton(
+                text = "Retry",
+                onClick = onRetry,
+                variant = ButtonVariant.PRIMARY,
+                modifier = Modifier.focusRequester(primaryFocus)
+            )
         }
     }
 }

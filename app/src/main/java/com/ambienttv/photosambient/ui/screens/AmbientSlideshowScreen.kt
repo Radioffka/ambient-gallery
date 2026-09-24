@@ -2,14 +2,13 @@ package com.ambienttv.photosambient.ui.screens
 
 import android.net.Uri
 import android.view.ViewGroup
+import android.view.KeyEvent as AndroidKeyEvent
 import android.widget.FrameLayout
 import androidx.annotation.OptIn
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -18,12 +17,18 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -68,17 +73,33 @@ fun AmbientSlideshowScreen(
     val currentItem by controller.currentMediaItem.collectAsState()
     val isPlaying by controller.isPlaying.collectAsState()
     val showOverlay by controller.showOverlay.collectAsState()
-    val interactionSource = remember { MutableInteractionSource() }
+    val rootFocus = remember { FocusRequester() }
+
+    LaunchedEffect(showOverlay) {
+        if (!showOverlay) rootFocus.requestFocus()
+    }
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Black)
-            .focusable(interactionSource = interactionSource)
-            .clickable(interactionSource = interactionSource, indication = null) {
-                // Remote interaction triggers transient HUD
-                controller.triggerTransientOverlay()
+            .focusRequester(rootFocus)
+            .onPreviewKeyEvent { event ->
+                if (!showOverlay && event.type == KeyEventType.KeyDown &&
+                    event.nativeKeyEvent.keyCode in listOf(
+                        AndroidKeyEvent.KEYCODE_DPAD_UP,
+                        AndroidKeyEvent.KEYCODE_DPAD_DOWN,
+                        AndroidKeyEvent.KEYCODE_DPAD_LEFT,
+                        AndroidKeyEvent.KEYCODE_DPAD_RIGHT,
+                        AndroidKeyEvent.KEYCODE_DPAD_CENTER,
+                        AndroidKeyEvent.KEYCODE_ENTER
+                    )
+                ) {
+                    controller.triggerTransientOverlay()
+                    true
+                } else false
             }
+            .focusable()
     ) {
         val item = currentItem
         if (item != null) {
@@ -203,6 +224,9 @@ private fun VideoPlayerView(
                 PlayerView(ctx).apply {
                     player = exoPlayer
                     useController = false
+                    isFocusable = false
+                    isFocusableInTouchMode = false
+                    descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
                     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                     layoutParams = FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,

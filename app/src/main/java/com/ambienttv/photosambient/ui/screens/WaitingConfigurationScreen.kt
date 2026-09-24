@@ -27,6 +27,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -35,6 +36,7 @@ import com.ambienttv.photosambient.ui.components.ButtonVariant
 import com.ambienttv.photosambient.ui.components.GooglePhotosPinwheelIcon
 import com.ambienttv.photosambient.ui.components.QrCodeImage
 import com.ambienttv.photosambient.ui.components.TvButton
+import com.ambienttv.photosambient.ui.components.rememberInitialFocusRequester
 import com.ambienttv.photosambient.ui.theme.BackgroundDark
 import com.ambienttv.photosambient.ui.theme.GoogleBlue
 import com.ambienttv.photosambient.ui.theme.SurfaceCard
@@ -60,6 +62,7 @@ fun WaitingConfigurationScreen(
     activelyPolling: Boolean = true,
     modifier: Modifier = Modifier
 ) {
+    val primaryFocus = rememberInitialFocusRequester()
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseAlpha by infiniteTransition.animateFloat(
         initialValue = 0.5f,
@@ -253,7 +256,8 @@ fun WaitingConfigurationScreen(
                     TvButton(
                         text = if (activelyPolling) "Cancel setup" else "Back",
                         onClick = onBackClick,
-                        variant = ButtonVariant.SECONDARY
+                        variant = ButtonVariant.SECONDARY,
+                        modifier = Modifier.focusRequester(primaryFocus)
                     )
                 }
 
