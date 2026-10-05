@@ -21,6 +21,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -52,6 +55,7 @@ import com.ambienttv.photosambient.data.model.MediaType
 import com.ambienttv.photosambient.slideshow.AmbientSlideshowController
 import com.ambienttv.photosambient.ui.components.TransientMediaOverlay
 import com.ambienttv.photosambient.ui.theme.GoogleBlue
+import kotlinx.coroutines.delay
 
 /**
  * Screens H & I: Fullscreen Ambient Slideshow (Photos & Videos)
@@ -63,6 +67,7 @@ import com.ambienttv.photosambient.ui.theme.GoogleBlue
  * - Media3 / ExoPlayer integration for video playback with aspect ratio preservation
  * - Remote D-pad interaction triggers transient HUD overlay with "From Google Photos" attribution
  */
+@OptIn(UnstableApi::class)
 @Composable
 fun AmbientSlideshowScreen(
     controller: AmbientSlideshowController,
@@ -74,6 +79,75 @@ fun AmbientSlideshowScreen(
     val isPlaying by controller.isPlaying.collectAsState()
     val showOverlay by controller.showOverlay.collectAsState()
     val rootFocus = remember { FocusRequester() }
+    val context = LocalContext.current
+    val dataSource = remember { DefaultHttpDataSource.Factory() }
+    val exoPlayer = remember(context) {
+        ExoPlayer.Builder(context)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource))
+            .build().apply { repeatMode = Player.REPEAT_MODE_OFF }
+    }
+    val activeItem by rememberUpdatedState(currentItem)
+    var playbackState by remember { mutableIntStateOf(Player.STATE_IDLE) }
+    val videoItem = currentItem?.takeIf { it.mediaType == MediaType.VIDEO }
+
+    DisposableEffect(exoPlayer, controller) {
+        val listener = object : Player.Listener {
+            override fun onPlaybackStateChanged(state: Int) {
+                playbackState = state
+                val item = activeItem
+                if (state == Player.STATE_ENDED && item?.mediaType == MediaType.VIDEO &&
+                    exoPlayer.currentMediaItem?.mediaId == item.id) {
+                    controller.onVideoCompleted()
+                }
+            }
+
+            override fun onPlayerError(error: PlaybackException) {
+                val item = activeItem
+                if (item?.mediaType == MediaType.VIDEO &&
+                    exoPlayer.currentMediaItem?.mediaId == item.id) {
+                    controller.onVideoFailed(item.id)
+                }
+            }
+        }
+        exoPlayer.addListener(listener)
+        onDispose {
+            exoPlayer.removeListener(listener)
+            exoPlayer.release()
+        }
+    }
+
+    LaunchedEffect(videoItem?.id, videoItem?.playbackUrl(), accessToken) {
+        if (videoItem == null) {
+            exoPlayer.playWhenReady = false
+            // Keep the last frame behind the outgoing video-to-photo fade.
+            delay(800)
+            exoPlayer.clearMediaItems()
+        } else {
+            dataSource.setDefaultRequestProperties(
+                if (videoItem.useGoogleBaseUrl && !accessToken.isNullOrBlank())
+                    mapOf("Authorization" to "Bearer $accessToken") else emptyMap()
+            )
+            val mediaUrl = videoItem.playbackUrl() ?: videoItem.baseUrl
+            exoPlayer.setMediaItem(MediaItem.Builder().setUri(Uri.parse(mediaUrl)).setMediaId(videoItem.id).build())
+            exoPlayer.prepare()
+            exoPlayer.playWhenReady = isPlaying
+        }
+    }
+
+    LaunchedEffect(isPlaying, videoItem?.id) {
+        exoPlayer.playWhenReady = isPlaying && videoItem != null
+    }
+
+    // An error callback does not cover a player that buffers indefinitely.
+    LaunchedEffect(videoItem?.id, playbackState) {
+        val item = videoItem ?: return@LaunchedEffect
+        if (playbackState == Player.STATE_READY || playbackState == Player.STATE_ENDED) return@LaunchedEffect
+        kotlinx.coroutines.delay(30_000)
+        if (activeItem?.id == item.id && exoPlayer.currentMediaItem?.mediaId == item.id &&
+            exoPlayer.playbackState != Player.STATE_READY) {
+            controller.onVideoFailed(item.id)
+        }
+    }
 
     LaunchedEffect(showOverlay) {
         if (!showOverlay) rootFocus.requestFocus()
@@ -103,6 +177,24 @@ fun AmbientSlideshowScreen(
     ) {
         val item = currentItem
         if (item != null) {
+            AndroidView(
+                factory = { ctx ->
+                    PlayerView(ctx).apply {
+                        player = exoPlayer
+                        useController = false
+                        setKeepContentOnPlayerReset(true)
+                        isFocusable = false
+                        isFocusableInTouchMode = false
+                        descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+                        resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
+                        layoutParams = FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxSize()
+            )
             Crossfade(
                 targetState = item,
                 animationSpec = tween(durationMillis = 800),
@@ -112,15 +204,7 @@ fun AmbientSlideshowScreen(
                     MediaType.PHOTO -> {
                         PhotoPlayerView(item = targetItem, accessToken = accessToken)
                     }
-                    MediaType.VIDEO -> {
-                        VideoPlayerView(
-                            item = targetItem,
-                            isPlaying = isPlaying,
-                            accessToken = accessToken,
-                            onVideoCompleted = { controller.onVideoCompleted() },
-                            onVideoFailed = { controller.onVideoFailed(targetItem.id) }
-                        )
-                    }
+                    MediaType.VIDEO -> Box(Modifier.fillMaxSize())
                 }
             }
         } else {
@@ -165,77 +249,5 @@ private fun PhotoPlayerView(item: AmbientMediaItem, accessToken: String?) {
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize()
         )
-    }
-}
-
-@OptIn(UnstableApi::class)
-@Composable
-private fun VideoPlayerView(
-    item: AmbientMediaItem,
-    isPlaying: Boolean,
-    accessToken: String?,
-    onVideoCompleted: () -> Unit,
-    onVideoFailed: () -> Unit
-) {
-    val mediaUrl = item.playbackUrl() ?: item.baseUrl
-    val context = LocalContext.current
-    val exoPlayer = remember(item.id, accessToken) {
-        val dataSource = DefaultHttpDataSource.Factory()
-        if (item.useGoogleBaseUrl && !accessToken.isNullOrBlank()) {
-            dataSource.setDefaultRequestProperties(mapOf("Authorization" to "Bearer $accessToken"))
-        }
-        ExoPlayer.Builder(context)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource))
-            .build().apply {
-            setMediaItem(MediaItem.fromUri(Uri.parse(mediaUrl)))
-            repeatMode = Player.REPEAT_MODE_OFF
-            prepare()
-            playWhenReady = isPlaying
-            addListener(object : Player.Listener {
-                override fun onPlaybackStateChanged(playbackState: Int) {
-                    if (playbackState == Player.STATE_ENDED) {
-                        onVideoCompleted()
-                    }
-                }
-                override fun onPlayerError(error: PlaybackException) {
-                    onVideoFailed()
-                }
-            })
-        }
-    }
-
-    DisposableEffect(item.id, accessToken) {
-        onDispose {
-            exoPlayer.release()
-        }
-    }
-
-    DisposableEffect(isPlaying) {
-        exoPlayer.playWhenReady = isPlaying
-        onDispose { }
-    }
-
-    Box(
-        modifier = Modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
-    ) {
-        AndroidView(
-            factory = { ctx ->
-                PlayerView(ctx).apply {
-                    player = exoPlayer
-                    useController = false
-                    isFocusable = false
-                    isFocusableInTouchMode = false
-                    descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
-                    resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-                    layoutParams = FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT
-                    )
-                }
-            },
-            modifier = Modifier.fillMaxSize()
-        )
-
     }
 }

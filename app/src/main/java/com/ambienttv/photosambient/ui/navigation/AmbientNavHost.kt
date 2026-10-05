@@ -217,7 +217,6 @@ fun AmbientNavHost(
                     OAuthQrScreen(
                         userCode = waiting.userCode,
                         verificationUrl = waiting.verificationUrl,
-                        qrPayload = waiting.qrPayloadUri,
                         deviceName = deviceName,
                         onBackClick = { screen = "device_name" }
                     )

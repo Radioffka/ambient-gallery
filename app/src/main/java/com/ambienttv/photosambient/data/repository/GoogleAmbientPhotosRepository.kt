@@ -79,7 +79,6 @@ class GoogleAmbientPhotosRepository(
         _authState.value = AuthState.WaitingForAuthorization(
             userCode = response.userCode,
             verificationUrl = response.verificationUrl,
-            qrPayloadUri = response.verificationUrlComplete ?: response.verificationUrl,
             expiresInSeconds = response.expiresInSeconds
         )
         return response
