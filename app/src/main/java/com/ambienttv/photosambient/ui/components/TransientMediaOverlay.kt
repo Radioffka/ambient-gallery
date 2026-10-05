@@ -103,8 +103,6 @@ fun TransientMediaOverlay(
                             .border(1.dp, Color(0x33FFFFFF), RoundedCornerShape(16.dp))
                             .padding(horizontal = 14.dp, vertical = 6.dp)
                     ) {
-                        GooglePhotosPinwheelIcon(modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
                             text = "From Google Photos",
                             color = Color(0xFFE8EAED),
