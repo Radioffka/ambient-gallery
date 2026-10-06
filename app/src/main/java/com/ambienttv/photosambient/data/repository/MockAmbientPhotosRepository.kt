@@ -157,8 +157,7 @@ class MockAmbientPhotosRepository(
 
         _authState.value = AuthState.WaitingForAuthorization(
             userCode = response.userCode,
-            verificationUrl = "www.google.com/device",
-            qrPayloadUri = response.verificationUrlComplete ?: response.verificationUrl,
+            verificationUrl = response.verificationUrl,
             expiresInSeconds = response.expiresInSeconds
         )
         return response

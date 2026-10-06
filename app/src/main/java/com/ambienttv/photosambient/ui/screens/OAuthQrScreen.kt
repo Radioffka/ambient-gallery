@@ -50,7 +50,6 @@ import com.ambienttv.photosambient.ui.theme.TextSecondary
 fun OAuthQrScreen(
     userCode: String,
     verificationUrl: String,
-    qrPayload: String,
     deviceName: String = "Living Room TV",
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
@@ -147,7 +146,6 @@ fun OAuthQrScreen(
                 QrCodeCard(
                     userCode = userCode,
                     verificationUrl = verificationUrl,
-                    qrPayload = qrPayload,
                     modifier = Modifier.weight(0.8f)
                 )
             }

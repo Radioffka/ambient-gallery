@@ -10,7 +10,6 @@ sealed interface AuthState {
     data class WaitingForAuthorization(
         val userCode: String,
         val verificationUrl: String,
-        val qrPayloadUri: String,
         val expiresInSeconds: Int = 900
     ) : AuthState
     
