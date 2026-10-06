@@ -41,39 +41,60 @@ fun QrCodeCard(
     userCode: String,
     verificationUrl: String,
     modifier: Modifier = Modifier,
-    qrSize: Dp = 220.dp
+    qrSize: Dp = 170.dp
 ) {
     Box(
         modifier = modifier
             .clip(RoundedCornerShape(20.dp))
             .background(SurfaceCard)
             .border(1.dp, Color(0x22FFFFFF), RoundedCornerShape(20.dp))
-            .padding(24.dp),
+            .padding(16.dp),
         contentAlignment = Alignment.Center
     ) {
         Column(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+            Text(
+                text = "Enter this code on your phone:",
+                color = TextSecondary,
+                fontSize = 14.sp
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(10.dp))
+                    .background(Color(0xFF13171F))
+                    .border(1.dp, Color(0xFF4285F4).copy(alpha = 0.5f), RoundedCornerShape(10.dp))
+                    .padding(horizontal = 12.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    text = userCode,
+                    color = TextPrimary,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                    fontFamily = FontFamily.Monospace,
+                    letterSpacing = 1.sp
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             // High-contrast QR Code frame
             Box(
                 modifier = Modifier
                     .size(qrSize)
                     .clip(RoundedCornerShape(16.dp))
                     .background(Color.White)
-                    .padding(14.dp),
+                    .padding(10.dp),
                 contentAlignment = Alignment.Center
             ) {
-                QrCodeImage(payload = verificationUrl, modifier = Modifier.size(qrSize - 28.dp))
+                QrCodeImage(payload = verificationUrl, modifier = Modifier.size(qrSize - 20.dp))
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
-
-            Text(
-                text = "Or enter code at:",
-                color = TextSecondary,
-                fontSize = 14.sp
-            )
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text(
                 text = verificationUrl,
@@ -81,26 +102,6 @@ fun QrCodeCard(
                 fontSize = 17.sp,
                 fontWeight = FontWeight.Medium
             )
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // Code highlight badge
-            Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(10.dp))
-                    .background(Color(0xFF13171F))
-                    .border(1.dp, Color(0xFF4285F4).copy(alpha = 0.5f), RoundedCornerShape(10.dp))
-                    .padding(horizontal = 20.dp, vertical = 8.dp)
-            ) {
-                Text(
-                    text = userCode,
-                    color = TextPrimary,
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    fontFamily = FontFamily.Monospace,
-                    letterSpacing = 3.sp
-                )
-            }
         }
     }
 }

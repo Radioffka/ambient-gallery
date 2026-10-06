@@ -43,7 +43,7 @@ import com.ambienttv.photosambient.ui.theme.TextSecondary
  * - Implements OAuth 2.0 for TVs and Limited Input Devices
  * - Displays official Google OAuth verification endpoint (e.g. www.google.com/device)
  * - Clear 4-step mobile sign-in instructions
- * - High-contrast QR code with user code
+ * - High-contrast QR code with a prominently visible user code
  * - References streamlined Ambient API state parameter (UUID v4 requestId)
  */
 @Composable
@@ -59,7 +59,7 @@ fun OAuthQrScreen(
         modifier = modifier
             .fillMaxSize()
             .background(BackgroundDark)
-            .padding(horizontal = 72.dp, vertical = 50.dp)
+            .padding(horizontal = 72.dp, vertical = 32.dp)
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -84,7 +84,7 @@ fun OAuthQrScreen(
                     }
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
-                        text = "Scan QR code to authorize on mobile",
+                        text = "Connect Google Photos on your phone",
                         color = TextPrimary,
                         fontSize = 32.sp,
                         fontWeight = FontWeight.Bold,
@@ -122,8 +122,8 @@ fun OAuthQrScreen(
                 ) {
                     AuthStepItem(
                         stepNumber = "1",
-                        title = "Scan QR code with your phone camera",
-                        description = "Or visit $verificationUrl on your phone or computer."
+                        title = "Scan the QR code with your phone",
+                        description = "Then enter the code shown on this TV. Or visit $verificationUrl."
                     )
                     AuthStepItem(
                         stepNumber = "2",
