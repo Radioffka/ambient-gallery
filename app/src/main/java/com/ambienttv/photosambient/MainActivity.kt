@@ -72,4 +72,9 @@ class MainActivity : ComponentActivity() {
             else -> super.onKeyDown(keyCode, event)
         }
     }
+
+    override fun onDestroy() {
+        slideshowController.release()
+        super.onDestroy()
+    }
 }

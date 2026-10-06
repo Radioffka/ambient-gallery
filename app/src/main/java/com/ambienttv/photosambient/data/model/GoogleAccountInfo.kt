@@ -9,7 +9,7 @@ package com.ambienttv.photosambient.data.model
  */
 data class GoogleAccountInfo(
     val isConnected: Boolean = true,
-    val avatarUrl: String? = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=80",
+    val avatarUrl: String? = null,
     val avatarInitial: String = "G",
     val accountBadge: String = "Connected to Google Photos",
     val configuredSourcesDescription: String = "Family & Recent Highlights (64 items)"

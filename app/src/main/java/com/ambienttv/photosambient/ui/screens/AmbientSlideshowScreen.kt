@@ -1,5 +1,6 @@
 package com.ambienttv.photosambient.ui.screens
 
+import android.content.Context
 import android.net.Uri
 import android.view.ViewGroup
 import android.view.KeyEvent as AndroidKeyEvent
@@ -47,6 +48,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
+import coil.Coil
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import okhttp3.Headers
@@ -76,6 +78,8 @@ fun AmbientSlideshowScreen(
     modifier: Modifier = Modifier
 ) {
     val currentItem by controller.currentMediaItem.collectAsState()
+    val currentIndex by controller.currentIndex.collectAsState()
+    val queue by controller.mediaQueue.collectAsState()
     val isPlaying by controller.isPlaying.collectAsState()
     val showOverlay by controller.showOverlay.collectAsState()
     val rootFocus = remember { FocusRequester() }
@@ -89,6 +93,17 @@ fun AmbientSlideshowScreen(
     val activeItem by rememberUpdatedState(currentItem)
     var playbackState by remember { mutableIntStateOf(Player.STATE_IDLE) }
     val videoItem = currentItem?.takeIf { it.mediaType == MediaType.VIDEO }
+
+    // Warm Coil's shared cache for the next photos without fetching the full queue.
+    LaunchedEffect(queue, currentIndex, accessToken) {
+        if (queue.size > 1) {
+            (1..minOf(2, queue.lastIndex))
+                .map { queue[(currentIndex + it) % queue.size] }
+                .filter { it.mediaType == MediaType.PHOTO }
+                .distinctBy { it.playbackUrl() }
+                .forEach { Coil.imageLoader(context).execute(photoRequest(context, it, accessToken)) }
+        }
+    }
 
     DisposableEffect(exoPlayer, controller) {
         val listener = object : Player.Listener {
@@ -224,30 +239,33 @@ fun AmbientSlideshowScreen(
             isPlaying = isPlaying,
             onOpenSettings = onOpenSettings,
             onTogglePlayPause = { controller.togglePlayPause() },
-            onNext = { controller.nextItem() },
-            onPrevious = { controller.previousItem() }
+            onNext = { controller.nextItem() }
         )
     }
 }
 
 @Composable
 private fun PhotoPlayerView(item: AmbientMediaItem, accessToken: String?) {
-    val mediaUrl = item.playbackUrl() ?: item.baseUrl
+    val context = LocalContext.current
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current).apply {
-                data(mediaUrl)
-                if (item.useGoogleBaseUrl && !accessToken.isNullOrBlank()) {
-                    headers(Headers.Builder().add("Authorization", "Bearer $accessToken").build())
-                }
-                crossfade(true)
-            }.build(),
+            model = photoRequest(context, item, accessToken),
             contentDescription = item.title.ifBlank { item.albumTitle },
             contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize()
         )
     }
 }
+
+private fun photoRequest(context: Context, item: AmbientMediaItem, accessToken: String?): ImageRequest =
+    ImageRequest.Builder(context).apply {
+        data(item.playbackUrl() ?: item.baseUrl)
+        size(1920, 1080)
+        if (item.useGoogleBaseUrl && !accessToken.isNullOrBlank()) {
+            headers(Headers.Builder().add("Authorization", "Bearer $accessToken").build())
+        }
+        crossfade(true)
+    }.build()
