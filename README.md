@@ -20,7 +20,8 @@ This repository starts from the native Android TV UX prototype originally prepar
 | Weather overlay/integration | Planned |
 | Advanced slideshow settings | Planned |
 | Encrypted token/device persistence | Implemented; extended recovery remains planned |
-| Play Store / release hardening | Not started |
+| Play Store / release hardening | Backup disabled and R8 enabled; signing and public OAuth verification pending |
+| Unit tests for playlist and media URLs | Implemented baseline |
 
 See [`STATE.md`](STATE.md) for the exact working baseline and [`ROADMAP.md`](ROADMAP.md) for the planned development sequence.
 

@@ -2,7 +2,6 @@ package com.ambienttv.photosambient.data.repository
 
 import com.ambienttv.photosambient.data.model.AmbientDevice
 import com.ambienttv.photosambient.data.model.AmbientMediaItem
-import com.ambienttv.photosambient.data.model.AmbientOAuthState
 import com.ambienttv.photosambient.data.model.AuthState
 import com.ambienttv.photosambient.data.model.DeviceAuthorizationResponse
 import com.ambienttv.photosambient.data.model.GoogleAccountInfo
@@ -19,7 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
  * Mock implementation of [AmbientPhotosRepository] for UX demonstration and review.
  *
  * Simulates the documented Google Photos Ambient API integration flow:
- * 1. OAuth 2.0 device code flow with UUID v4 requestId in `state`
+ * 1. OAuth 2.0 device code flow for the demo UI
  * 2. Scope: `https://www.googleapis.com/auth/photosambient.mediaitems`
  * 3. Ambient device creation returning output-only `settingsUri` and API device ID
  * 4. Polling for `mediaSourcesSet` according to `pollingConfig.pollInterval` (with demoPollInterval for fast review)
@@ -46,7 +45,6 @@ class MockAmbientPhotosRepository(
     override val accessToken: StateFlow<String?> = _accessToken.asStateFlow()
 
     private var activeDeviceName: String = "Living Room TV"
-    private var activeOAuthState: AmbientOAuthState = AmbientOAuthState.create("Living Room TV")
 
     // Internal mock properties clearly labeled for demonstration mode
     val mockVerificationUrl: String = "https://www.google.com/device"
@@ -138,13 +136,11 @@ class MockAmbientPhotosRepository(
 
     override suspend fun updateDeviceName(displayName: String) {
         activeDeviceName = displayName.ifBlank { "Living Room TV" }
-        activeOAuthState = AmbientOAuthState.create(activeDeviceName)
         _currentDevice.value = _currentDevice.value?.copy(displayName = activeDeviceName)
     }
 
     override suspend fun initiateAuthorization(displayName: String): DeviceAuthorizationResponse {
         activeDeviceName = displayName.ifBlank { "Living Room TV" }
-        activeOAuthState = AmbientOAuthState.create(activeDeviceName)
 
         val response = DeviceAuthorizationResponse(
             deviceCode = "mock_device_code_${System.currentTimeMillis() % 100000}",
@@ -191,10 +187,10 @@ class MockAmbientPhotosRepository(
         )
         val updatedDevice = device.copy(mediaSourcesSet = true)
 
-        // Privacy-safe account details (realistic avatar, zero email/name exposure)
+        // Privacy-safe account details without an external avatar request.
         val account = GoogleAccountInfo(
             isConnected = true,
-            avatarUrl = "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=80",
+            avatarUrl = null,
             avatarInitial = "G",
             accountBadge = "Connected to Google Photos",
             configuredSourcesDescription = "Family & Recent Highlights (64 items)"
@@ -228,7 +224,6 @@ class MockAmbientPhotosRepository(
         _accountInfo.value = null
         _mediaItems.value = emptyList()
         activeDeviceName = "Living Room TV"
-        activeOAuthState = AmbientOAuthState.create("Living Room TV")
         _authState.value = AuthState.Unauthenticated
     }
 }

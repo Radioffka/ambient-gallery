@@ -56,7 +56,6 @@ fun TransientMediaOverlay(
     onOpenSettings: () -> Unit,
     onTogglePlayPause: () -> Unit,
     onNext: () -> Unit,
-    onPrevious: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val primaryFocus = remember { FocusRequester() }

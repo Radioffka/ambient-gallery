@@ -5,6 +5,7 @@ import com.ambienttv.photosambient.data.model.MediaType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +36,10 @@ class AmbientSlideshowController(
 
     private var slideshowJob: Job? = null
     private var overlayDismissJob: Job? = null
+
+    fun release() {
+        scope.cancel()
+    }
 
     fun setQueue(items: List<AmbientMediaItem>) {
         _mediaQueue.value = items
@@ -90,8 +95,16 @@ class AmbientSlideshowController(
     }
 
     fun onVideoFailed(id: String) {
+        val failedIndex = _mediaQueue.value.indexOfFirst { it.id == id }
+        if (failedIndex < 0) return
+        val currentId = _currentMediaItem.value?.id
         val remaining = _mediaQueue.value.filterNot { it.id == id }
-        if (remaining.size != _mediaQueue.value.size) setQueue(remaining)
+        val nextIndex = if (currentId == id) failedIndex % remaining.size.coerceAtLeast(1)
+            else remaining.indexOfFirst { it.id == currentId }.coerceAtLeast(0)
+        _mediaQueue.value = remaining
+        _currentIndex.value = nextIndex
+        _currentMediaItem.value = remaining.getOrNull(nextIndex)
+        restartTimer()
     }
 
     private fun restartTimer() {
