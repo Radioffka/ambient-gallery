@@ -19,6 +19,8 @@ interface AmbientPhotosRepository {
     val currentDevice: StateFlow<AmbientDevice?>
     val accountInfo: StateFlow<GoogleAccountInfo?>
     val mediaItems: StateFlow<List<AmbientMediaItem>>
+    /** In-memory bearer token for authenticated media byte requests; never persist in UI. */
+    val accessToken: StateFlow<String?>
 
     /**
      * Initiates the OAuth 2.0 Limited Input Device authorization flow.

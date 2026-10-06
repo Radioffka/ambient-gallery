@@ -20,6 +20,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -33,6 +34,7 @@ import com.ambienttv.photosambient.data.model.GoogleAccountInfo
 import com.ambienttv.photosambient.ui.components.ButtonVariant
 import com.ambienttv.photosambient.ui.components.GooglePhotosPinwheelIcon
 import com.ambienttv.photosambient.ui.components.TvButton
+import com.ambienttv.photosambient.ui.components.rememberInitialFocusRequester
 import com.ambienttv.photosambient.ui.theme.BackgroundDark
 import com.ambienttv.photosambient.ui.theme.GoogleGreen
 import com.ambienttv.photosambient.ui.theme.SurfaceCard
@@ -59,6 +61,7 @@ fun SettingsScreen(
     onDisconnectClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val primaryFocus = rememberInitialFocusRequester()
     Box(
         modifier = modifier
             .fillMaxSize()
@@ -100,7 +103,8 @@ fun SettingsScreen(
                 TvButton(
                     text = "▶  Start Ambient Slideshow",
                     onClick = onStartSlideshow,
-                    variant = ButtonVariant.PRIMARY
+                    variant = ButtonVariant.PRIMARY,
+                    modifier = Modifier.focusRequester(primaryFocus)
                 )
             }
 

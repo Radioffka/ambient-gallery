@@ -5,7 +5,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -69,7 +68,6 @@ fun GooglePhotosButton(
                 color = if (isFocused) FocusBorder else Color(0xFFDADCE0),
                 shape = RoundedCornerShape(28.dp)
             )
-            .focusable(enabled = enabled, interactionSource = interactionSource)
             .clickable(enabled = enabled, interactionSource = interactionSource, indication = null) {
                 onClick()
             }

@@ -2,14 +2,13 @@ package com.ambienttv.photosambient.ui.screens
 
 import android.net.Uri
 import android.view.ViewGroup
+import android.view.KeyEvent as AndroidKeyEvent
 import android.widget.FrameLayout
 import androidx.annotation.OptIn
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.focusable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -18,12 +17,18 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.onPreviewKeyEvent
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -31,13 +36,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.MediaItem
+import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.datasource.DefaultHttpDataSource
 import androidx.media3.ui.AspectRatioFrameLayout
 import androidx.media3.ui.PlayerView
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
+import okhttp3.Headers
 import com.ambienttv.photosambient.data.model.AmbientMediaItem
 import com.ambienttv.photosambient.data.model.MediaType
 import com.ambienttv.photosambient.slideshow.AmbientSlideshowController
@@ -57,23 +66,40 @@ import com.ambienttv.photosambient.ui.theme.GoogleBlue
 @Composable
 fun AmbientSlideshowScreen(
     controller: AmbientSlideshowController,
+    accessToken: String? = null,
     onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val currentItem by controller.currentMediaItem.collectAsState()
     val isPlaying by controller.isPlaying.collectAsState()
     val showOverlay by controller.showOverlay.collectAsState()
-    val interactionSource = remember { MutableInteractionSource() }
+    val rootFocus = remember { FocusRequester() }
+
+    LaunchedEffect(showOverlay) {
+        if (!showOverlay) rootFocus.requestFocus()
+    }
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(Color.Black)
-            .focusable(interactionSource = interactionSource)
-            .clickable(interactionSource = interactionSource, indication = null) {
-                // Remote interaction triggers transient HUD
-                controller.triggerTransientOverlay()
+            .focusRequester(rootFocus)
+            .onPreviewKeyEvent { event ->
+                if (!showOverlay && event.type == KeyEventType.KeyDown &&
+                    event.nativeKeyEvent.keyCode in listOf(
+                        AndroidKeyEvent.KEYCODE_DPAD_UP,
+                        AndroidKeyEvent.KEYCODE_DPAD_DOWN,
+                        AndroidKeyEvent.KEYCODE_DPAD_LEFT,
+                        AndroidKeyEvent.KEYCODE_DPAD_RIGHT,
+                        AndroidKeyEvent.KEYCODE_DPAD_CENTER,
+                        AndroidKeyEvent.KEYCODE_ENTER
+                    )
+                ) {
+                    controller.triggerTransientOverlay()
+                    true
+                } else false
             }
+            .focusable()
     ) {
         val item = currentItem
         if (item != null) {
@@ -84,13 +110,15 @@ fun AmbientSlideshowScreen(
             ) { targetItem ->
                 when (targetItem.mediaType) {
                     MediaType.PHOTO -> {
-                        PhotoPlayerView(item = targetItem)
+                        PhotoPlayerView(item = targetItem, accessToken = accessToken)
                     }
                     MediaType.VIDEO -> {
                         VideoPlayerView(
                             item = targetItem,
                             isPlaying = isPlaying,
-                            onVideoCompleted = { controller.onVideoCompleted() }
+                            accessToken = accessToken,
+                            onVideoCompleted = { controller.onVideoCompleted() },
+                            onVideoFailed = { controller.onVideoFailed(targetItem.id) }
                         )
                     }
                 }
@@ -119,19 +147,22 @@ fun AmbientSlideshowScreen(
 }
 
 @Composable
-private fun PhotoPlayerView(item: AmbientMediaItem) {
+private fun PhotoPlayerView(item: AmbientMediaItem, accessToken: String?) {
     val mediaUrl = item.playbackUrl() ?: item.baseUrl
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         AsyncImage(
-            model = ImageRequest.Builder(LocalContext.current)
-                .data(mediaUrl)
-                .crossfade(true)
-                .build(),
+            model = ImageRequest.Builder(LocalContext.current).apply {
+                data(mediaUrl)
+                if (item.useGoogleBaseUrl && !accessToken.isNullOrBlank()) {
+                    headers(Headers.Builder().add("Authorization", "Bearer $accessToken").build())
+                }
+                crossfade(true)
+            }.build(),
             contentDescription = item.title.ifBlank { item.albumTitle },
-            contentScale = ContentScale.Crop,
+            contentScale = ContentScale.Fit,
             modifier = Modifier.fillMaxSize()
         )
     }
@@ -142,12 +173,20 @@ private fun PhotoPlayerView(item: AmbientMediaItem) {
 private fun VideoPlayerView(
     item: AmbientMediaItem,
     isPlaying: Boolean,
-    onVideoCompleted: () -> Unit
+    accessToken: String?,
+    onVideoCompleted: () -> Unit,
+    onVideoFailed: () -> Unit
 ) {
     val mediaUrl = item.playbackUrl() ?: item.baseUrl
     val context = LocalContext.current
-    val exoPlayer = remember(item.id) {
-        ExoPlayer.Builder(context).build().apply {
+    val exoPlayer = remember(item.id, accessToken) {
+        val dataSource = DefaultHttpDataSource.Factory()
+        if (item.useGoogleBaseUrl && !accessToken.isNullOrBlank()) {
+            dataSource.setDefaultRequestProperties(mapOf("Authorization" to "Bearer $accessToken"))
+        }
+        ExoPlayer.Builder(context)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSource))
+            .build().apply {
             setMediaItem(MediaItem.fromUri(Uri.parse(mediaUrl)))
             repeatMode = Player.REPEAT_MODE_OFF
             prepare()
@@ -158,11 +197,14 @@ private fun VideoPlayerView(
                         onVideoCompleted()
                     }
                 }
+                override fun onPlayerError(error: PlaybackException) {
+                    onVideoFailed()
+                }
             })
         }
     }
 
-    DisposableEffect(item.id) {
+    DisposableEffect(item.id, accessToken) {
         onDispose {
             exoPlayer.release()
         }
@@ -182,6 +224,9 @@ private fun VideoPlayerView(
                 PlayerView(ctx).apply {
                     player = exoPlayer
                     useController = false
+                    isFocusable = false
+                    isFocusableInTouchMode = false
+                    descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
                     resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
                     layoutParams = FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
@@ -192,20 +237,5 @@ private fun VideoPlayerView(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Subtle unobtrusive video badge in top corner for review verification
-        Box(
-            modifier = Modifier
-                .align(Alignment.TopEnd)
-                .padding(24.dp)
-                .background(Color(0x99000000), RoundedCornerShape(8.dp))
-                .padding(horizontal = 10.dp, vertical = 5.dp)
-        ) {
-            Text(
-                text = "▶ VIDEO AMBIENT STREAM",
-                color = Color(0xFF8AB4F8),
-                fontSize = 11.sp,
-                fontWeight = FontWeight.Bold
-            )
-        }
     }
 }

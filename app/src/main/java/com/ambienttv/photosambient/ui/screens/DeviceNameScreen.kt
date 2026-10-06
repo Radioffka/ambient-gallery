@@ -3,7 +3,6 @@ package com.ambienttv.photosambient.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.focusable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
@@ -27,6 +26,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -35,6 +35,7 @@ import androidx.compose.ui.unit.sp
 import com.ambienttv.photosambient.ui.components.ButtonVariant
 import com.ambienttv.photosambient.ui.components.GooglePhotosPinwheelIcon
 import com.ambienttv.photosambient.ui.components.TvButton
+import com.ambienttv.photosambient.ui.components.rememberInitialFocusRequester
 import com.ambienttv.photosambient.ui.theme.BackgroundDark
 import com.ambienttv.photosambient.ui.theme.FocusBorder
 import com.ambienttv.photosambient.ui.theme.GoogleBlue
@@ -57,6 +58,7 @@ fun DeviceNameScreen(
     onBackClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val primaryFocus = rememberInitialFocusRequester()
     var selectedName by remember { mutableStateOf(if (currentName.isBlank()) "Living Room TV" else currentName) }
     val presets = listOf("Living Room TV", "Bedroom TV", "Family Room Display", "Office Frame")
 
@@ -202,7 +204,8 @@ fun DeviceNameScreen(
                             onNameSelected(selectedName)
                             onContinueClick()
                         },
-                        variant = ButtonVariant.PRIMARY
+                        variant = ButtonVariant.PRIMARY,
+                        modifier = Modifier.focusRequester(primaryFocus)
                     )
                 }
             }
@@ -228,7 +231,6 @@ private fun PresetNameChip(
                 color = if (isFocused) FocusBorder else if (isSelected) GoogleBlue else Color(0x22FFFFFF),
                 shape = RoundedCornerShape(10.dp)
             )
-            .focusable(interactionSource = interactionSource)
             .clickable(interactionSource = interactionSource, indication = null) {
                 onClick()
             }

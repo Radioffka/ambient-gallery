@@ -2,6 +2,8 @@
 
 This roadmap is ordered to avoid mixing infrastructure, partner-gated API work, and product features.
 
+Status (2026-09-23): a first live Phase 2 TV MVP is implemented for a privately configured debug APK. Real TV playback, a second-account consent test, Ambient video responses, and public OAuth verification are still open; see `STATE.md`.
+
 ## Phase 0: Repository bootstrap
 
 Goal: make the recovered prototype a reliable development baseline.
