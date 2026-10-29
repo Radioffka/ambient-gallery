@@ -116,7 +116,7 @@ fun AmbientNavHost(
             }
             while (coroutineContext.isActive && screen == "waiting_setup") {
                 if (repository.checkMediaSourcesSet()) {
-                    waitingMessage = "Selection saved. Looking for eligible photos..."
+                    waitingMessage = "Selection saved. Looking for eligible photos and videos..."
                     val fetched = repository.refreshMediaItems()
                     if (fetched.isNotEmpty()) {
                         slideshowController.setQueue(fetched)
@@ -124,7 +124,7 @@ fun AmbientNavHost(
                         break
                     }
                     emptyAttempts++
-                    waitingMessage = "Google has not returned media yet. Retrying automatically."
+                    waitingMessage = "Google returned no playable items. Try another album in Google Photos; retrying."
                     delay((60_000L shl (emptyAttempts - 1).coerceAtMost(3)).coerceAtMost(600_000L))
                 } else {
                     waitingMessage = "Waiting for album selection in the Google Photos app."
@@ -164,7 +164,7 @@ fun AmbientNavHost(
 
     LaunchedEffect(screen, queue.isEmpty()) {
         if (screen == "slideshow" && queue.isEmpty()) {
-            waitingMessage = "No playable media is available yet. Retrying automatically."
+            waitingMessage = "Google returned no playable items. Try another album in Google Photos; retrying."
             screen = "waiting_setup"
         }
     }
@@ -253,7 +253,7 @@ fun AmbientNavHost(
                                         screen = "slideshow"
                                     } else {
                                         returnToSettings = true
-                                        waitingMessage = "Google has not returned media yet. Retrying automatically."
+                                        waitingMessage = "Google returned no playable items. Try another album in Google Photos; retrying."
                                         screen = "waiting_setup"
                                     }
                                 } catch (error: Exception) {
