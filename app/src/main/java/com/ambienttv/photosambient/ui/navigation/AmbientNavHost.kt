@@ -170,8 +170,9 @@ fun AmbientNavHost(
     }
 
     BackHandler(enabled = screen != "welcome") {
-        if (screen == "waiting_setup" && !returnToSettings) {
-            cancelSetup()
+        if (screen == "waiting_setup") {
+            if (returnToSettings || device?.mediaSourcesSet == true) screen = "settings"
+            else cancelSetup()
         } else screen = when (screen) {
             "permissions" -> "welcome"
             "device_name" -> "permissions"
@@ -226,7 +227,11 @@ fun AmbientNavHost(
                 deviceName = device?.displayName ?: deviceName,
                 settingsUri = repository.getSettingsUri(),
                 statusMessage = waitingMessage,
-                onBackClick = if (returnToSettings) ({ screen = "settings" }) else ({ cancelSetup() })
+                onBackClick = if (returnToSettings || device?.mediaSourcesSet == true) {
+                    { screen = "settings" }
+                } else {
+                    { cancelSetup() }
+                }
             )
             "selection_settings" -> WaitingConfigurationScreen(
                 deviceName = device?.displayName ?: deviceName,

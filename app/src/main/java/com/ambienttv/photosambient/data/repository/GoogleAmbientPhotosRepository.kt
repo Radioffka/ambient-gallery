@@ -1,6 +1,8 @@
 package com.ambienttv.photosambient.data.repository
 
 import android.content.Context
+import android.util.Log
+import com.ambienttv.photosambient.BuildConfig
 import com.ambienttv.photosambient.data.model.AmbientDevice
 import com.ambienttv.photosambient.data.model.AmbientMediaItem
 import com.ambienttv.photosambient.data.model.AuthState
@@ -231,16 +233,22 @@ class GoogleAmbientPhotosRepository(
                 (sourceId?.let { "&mediaSourceId=${encode(it)}" } ?: "") +
                 (pageToken?.let { token -> "&pageToken=${encode(token)}" } ?: "")
             val result = request("GET", query, bearer = access)
+            if (BuildConfig.DEBUG && result.status !in 200..299) {
+                Log.i(MEDIA_PROBE_TAG, "source=${if (sourceId == null) "curated" else "selected"} http=${result.status}")
+            }
             requireSuccess(result, "List Ambient media")
             val page = result.body.optJSONArray("mediaItems")
+            var photos = 0
+            var videos = 0
+            var other = 0
             for (index in 0 until (page?.length() ?: 0)) {
                 val entry = page?.optJSONObject(index) ?: continue
                 val media = entry.optJSONObject("mediaFile") ?: continue
                 val mime = media.optString("mimeType")
                 val type = when {
-                    mime.startsWith("image/") -> MediaType.PHOTO
-                    mime.startsWith("video/") -> MediaType.VIDEO
-                    else -> continue
+                    mime.startsWith("image/") -> { photos++; MediaType.PHOTO }
+                    mime.startsWith("video/") -> { videos++; MediaType.VIDEO }
+                    else -> { other++; continue }
                 }
                 val id = entry.optString("id")
                 val baseUrl = media.optString("baseUrl")
@@ -261,6 +269,11 @@ class GoogleAmbientPhotosRepository(
                 )
             }
             pageToken = result.body.optString("nextPageToken").ifBlank { null }
+            if (BuildConfig.DEBUG) {
+                Log.i(MEDIA_PROBE_TAG, "source=${if (sourceId == null) "curated" else "selected"} " +
+                    "http=${result.status} raw=${page?.length() ?: 0} photo=$photos video=$videos " +
+                    "other=$other playable=${items.size} nextPage=${pageToken != null}")
+            }
             if (pageToken == null) {
                 return items.values.toList()
             }
@@ -419,5 +432,6 @@ class GoogleAmbientPhotosRepository(
     companion object {
         private const val API_ROOT = "https://photosambient.googleapis.com/v1"
         private const val DIRECT_SOURCE_RETRY_MILLIS = 2 * 60 * 60 * 1000L
+        private const val MEDIA_PROBE_TAG = "AmbientMediaProbe"
     }
 }

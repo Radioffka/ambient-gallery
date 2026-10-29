@@ -22,6 +22,16 @@ Run available checks/tests before opening a PR. Keep dependency upgrades separat
 
 The web simulator is optional and exists to demonstrate the TV UX quickly.
 
+For functional Android TV testing on Windows, use the Android TV emulator instead. After creating an Android TV AVD, build a private APK with `scripts/build-tv.ps1` and run:
+
+```powershell
+.\scripts\run-tv-emulator.ps1 -SdkRoot 'C:\path\to\android-sdk' -AvdName 'AmbientGalleryTV'
+```
+
+The script starts a visible emulator without loading an old snapshot, installs with `adb install -r`, and launches the actual app. Use arrow keys, Enter, and Escape in the emulator window. The emulator retains its encrypted OAuth session across APK updates; do not uninstall the app, clear its data, or use Disconnect between routine tests. If Google account authorization is needed, complete it once on a separate device.
+
+Debug builds emit only aggregate Ambient response diagnostics under the `AmbientMediaProbe` log tag: HTTP status, source mode, raw item count, photo/video/other counts, playable count, and pagination presence. No IDs, URLs, user codes, or tokens are logged. The script prints the exact `adb logcat` command to follow these counts.
+
 ```bash
 npm ci
 npx playwright install chromium
