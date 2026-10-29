@@ -9,6 +9,7 @@ import com.ambienttv.photosambient.data.model.GoogleAccountInfo
 import com.ambienttv.photosambient.data.model.MediaType
 import com.ambienttv.photosambient.data.model.PollingConfig
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -36,6 +37,8 @@ class GoogleAmbientPhotosRepository(
     private var session: AmbientSession? = store.read()
     private var pendingCode: DeviceAuthorizationResponse? = null
     private var requestedDeviceName = "Living Room TV"
+    private var selectedMediaSourceIds = emptyList<String>()
+    private var lastDirectSourceAttemptMillis = 0L
 
     private val _authState = MutableStateFlow<AuthState>(
         session?.let { AuthState.ConfiguringMediaSources(it.toDevice()) } ?: AuthState.Unauthenticated
@@ -167,6 +170,13 @@ class GoogleAmbientPhotosRepository(
         requireSuccess(result, "Check media selection")
         val device = parseDevice(result.body)
         _currentDevice.value = device
+        val sourceIds = result.body.optJSONArray("mediaSources")?.let { sources ->
+            (0 until sources.length()).mapNotNull { index ->
+                sources.optJSONObject(index)?.optString("id")?.takeIf { it.isNotBlank() && it != "highlights" }
+            }
+        } ?: emptyList()
+        if (sourceIds != selectedMediaSourceIds) lastDirectSourceAttemptMillis = 0L
+        selectedMediaSourceIds = sourceIds
         if (device.settingsUri != active.settingsUri || device.displayName != active.deviceName) {
             val updated = active.copy(settingsUri = device.settingsUri, deviceName = device.displayName)
             session = updated
@@ -192,11 +202,33 @@ class GoogleAmbientPhotosRepository(
     override suspend fun refreshMediaItems(): List<AmbientMediaItem> {
         val device = _currentDevice.value ?: error("No Ambient device has been created.")
         val access = validAccessToken()
+        val curated = listMediaItems(access, device.deviceId)
+        val now = System.currentTimeMillis()
+        val direct = if (curated.isEmpty() && selectedMediaSourceIds.isNotEmpty() &&
+            now - lastDirectSourceAttemptMillis >= DIRECT_SOURCE_RETRY_MILLIS
+        ) {
+            lastDirectSourceAttemptMillis = now
+            try {
+                // Google's curated Ambient response can be empty even for a selected album.
+                // Probe one documented source path at a low rate to stay within the device quota.
+                listMediaItems(access, device.deviceId, selectedMediaSourceIds.first())
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                emptyList()
+            }
+        } else emptyList()
+        _mediaItems.value = (curated + direct).distinctBy { it.id }
+        return _mediaItems.value
+    }
+
+    private suspend fun listMediaItems(access: String, deviceId: String, sourceId: String? = null): List<AmbientMediaItem> {
         val items = LinkedHashMap<String, AmbientMediaItem>()
         var pageToken: String? = null
         // A page is up to 100 items. Bound each refresh to avoid exhausting the 240/day device quota.
         repeat(3) {
-            val query = "$API_ROOT/mediaItems?deviceId=${encode(device.deviceId)}&pageSize=100" +
+            val query = "$API_ROOT/mediaItems?deviceId=${encode(deviceId)}&pageSize=100" +
+                (sourceId?.let { "&mediaSourceId=${encode(it)}" } ?: "") +
                 (pageToken?.let { token -> "&pageToken=${encode(token)}" } ?: "")
             val result = request("GET", query, bearer = access)
             requireSuccess(result, "List Ambient media")
@@ -230,12 +262,10 @@ class GoogleAmbientPhotosRepository(
             }
             pageToken = result.body.optString("nextPageToken").ifBlank { null }
             if (pageToken == null) {
-                _mediaItems.value = items.values.toList()
-                return _mediaItems.value
+                return items.values.toList()
             }
         }
-        _mediaItems.value = items.values.toList()
-        return _mediaItems.value
+        return items.values.toList()
     }
 
     override fun getSettingsUri(): String? = _currentDevice.value?.settingsUri
@@ -274,6 +304,8 @@ class GoogleAmbientPhotosRepository(
         store.clear()
         session = null
         pendingCode = null
+        selectedMediaSourceIds = emptyList()
+        lastDirectSourceAttemptMillis = 0L
         _accessToken.value = null
         _currentDevice.value = null
         _accountInfo.value = null
@@ -386,5 +418,6 @@ class GoogleAmbientPhotosRepository(
 
     companion object {
         private const val API_ROOT = "https://photosambient.googleapis.com/v1"
+        private const val DIRECT_SOURCE_RETRY_MILLIS = 2 * 60 * 60 * 1000L
     }
 }
